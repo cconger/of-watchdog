@@ -3,11 +3,11 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 )
 
 // MetricsServer provides instrumentation for HTTP calls

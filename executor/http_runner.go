@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -15,6 +14,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // HTTPFunctionRunner creates and maintains one process responsible for handling all calls
@@ -27,7 +28,6 @@ type HTTPFunctionRunner struct {
 	Command        *exec.Cmd
 	StdinPipe      io.WriteCloser
 	StdoutPipe     io.ReadCloser
-	Stderr         io.Writer
 	Client         *http.Client
 	UpstreamURL    *url.URL
 	BufferHTTPBody bool
@@ -53,36 +53,9 @@ func (f *HTTPFunctionRunner) Start() error {
 
 	errPipe, _ := cmd.StderrPipe()
 
-	// Prints stderr to console and is picked up by container logging driver.
-	go func() {
-		log.Println("Started logging stderr from function.")
-		for {
-			errBuff := make([]byte, 256)
-
-			_, err := errPipe.Read(errBuff)
-			if err != nil {
-				log.Fatalf("Error reading stderr: %s", err)
-
-			} else {
-				log.Printf("stderr: %s", errBuff)
-			}
-		}
-	}()
-
-	go func() {
-		log.Println("Started logging stdout from function.")
-		for {
-			errBuff := make([]byte, 256)
-
-			_, err := f.StdoutPipe.Read(errBuff)
-			if err != nil {
-				log.Fatalf("Error reading stdout: %s", err)
-
-			} else {
-				log.Printf("stdout: %s", errBuff)
-			}
-		}
-	}()
+	// Prints stderr and stdout to the container logging driver.
+	bindLoggingPipe("stderr", errPipe)
+	bindLoggingPipe("stdout", f.StdoutPipe)
 
 	f.Client = makeProxyClient(f.ExecTimeout)
 
@@ -95,7 +68,16 @@ func (f *HTTPFunctionRunner) Start() error {
 
 	}()
 
-	return cmd.Start()
+	err := cmd.Start()
+
+	go func() {
+		err := cmd.Wait()
+		log.WithFields(log.Fields{
+			"err": err,
+		}).Fatal("Forked process has closed.")
+	}()
+
+	return err
 }
 
 // Run a function with a long-running process with a HTTP protocol for communication

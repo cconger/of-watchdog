@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// ConfigJSONLoggingMode is the mode string for setting logging to ouput JSON
+const ConfigJSONLoggingMode = "json"
+
 // WatchdogConfig configuration for a watchdog.
 type WatchdogConfig struct {
 	TCPPort          int
@@ -20,6 +23,7 @@ type WatchdogConfig struct {
 	OperationalMode  int
 	SuppressLock     bool
 	UpstreamURL      string
+	LoggingMode      string
 
 	// BufferHTTPBody buffers the HTTP body in memory
 	// to prevent transfer type of chunked encoding
@@ -74,6 +78,11 @@ func New(env []string) (WatchdogConfig, error) {
 		contentType = val
 	}
 
+	loggingMode := "text"
+	if val, exists := envMap["logging_mode"]; exists {
+		loggingMode = val
+	}
+
 	config := WatchdogConfig{
 		TCPPort:          getInt(envMap, "port", 8080),
 		HTTPReadTimeout:  getDuration(envMap, "read_timeout", time.Second*10),
@@ -85,6 +94,7 @@ func New(env []string) (WatchdogConfig, error) {
 		ContentType:      contentType,
 		SuppressLock:     getBool(envMap, "suppress_lock"),
 		UpstreamURL:      upstreamURL,
+		LoggingMode:      loggingMode,
 		BufferHTTPBody:   getBool(envMap, "buffer_http"),
 		MetricsPort:      8081,
 		MaxInflight:      getInt(envMap, "max_inflight", 0),

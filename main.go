@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"github.com/openfaas-incubator/of-watchdog/executor"
 	"github.com/openfaas-incubator/of-watchdog/metrics"
 	limiter "github.com/openfaas/faas-middleware/concurrency-limiter"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -37,6 +37,10 @@ func main() {
 	if len(watchdogConfig.FunctionProcess) == 0 {
 		fmt.Fprintf(os.Stderr, "Provide a \"function_process\" or \"fprocess\" environmental variable for your function.\n")
 		os.Exit(-1)
+	}
+
+	if watchdogConfig.LoggingMode == "json" {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	requestHandler := buildRequestHandler(watchdogConfig)

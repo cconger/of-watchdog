@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os/exec"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // SerializingForkFunctionRunner forks a process for each invocation
